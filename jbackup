@@ -1,0 +1,6 @@
+#!/bin/bash
+
+LINK="$(readlink -f "${0}")"
+ROOTPATH="$(dirname "${LINK:-${0}}")"
+
+java -Xmx=4G -jar "jbackup.jar" $@
