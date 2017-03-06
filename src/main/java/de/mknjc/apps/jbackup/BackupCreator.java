@@ -26,10 +26,23 @@ public class BackupCreator implements Runnable {
 
 	private final List<BackupInstruction> instructions = new ArrayList<>();
 
+
+	RollingHash hash = new RollingHash();
+	final byte[] buff;
+	int hashHead = 0;
+	int hashTail = 0;
+	int chunkTail = 0;
+	int chunkLength = 0;
+	int hashLength = 0;
+
+	long nextChunkHash = 0;
+
+
 	public BackupCreator(final InputStream input, final Store cs) {
 		this.in = input;
 		this.cs = cs;
 		this.MAX_CHUNK_SIZE = this.cs.getMaxChunkSize();
+		buff =  new byte[this.MAX_CHUNK_SIZE*4];
 		try {
 			this.chunkHash = MessageDigest.getInstance("SHA-1");
 			this.totalSHA = MessageDigest.getInstance("SHA-256");
@@ -55,15 +68,6 @@ public class BackupCreator implements Runnable {
 	 */
 	@Override
 	public void run() {
-		RollingHash hash = new RollingHash();
-		final byte[] buff = new byte[this.MAX_CHUNK_SIZE*4];
-		int hashHead = 0;
-		int hashTail = 0;
-		int chunkTail = 0;
-		int chunkLength = 0;
-		int hashLength = 0;
-
-		long nextChunkHash = 0;
 
 		try {
 			int readed = 0;
@@ -73,78 +77,10 @@ public class BackupCreator implements Runnable {
 
 				while(readed-- != 0) {
 
-					if(hashLength == this.MAX_CHUNK_SIZE) {
-						hash.rotate(buff[hashHead++], buff[hashTail++]);
-						chunkLength++;
+					advanceHash();
 
-						if(hashHead == buff.length)
-							hashHead = 0;
-						if(hashTail == buff.length)
-							hashTail = 0;
-
-						if(chunkLength == this.MAX_CHUNK_SIZE) {
-							final byte[] chunksha = this.calcSha(buff, chunkTail, chunkLength);
-							// nextChunkHash could only be used by full chunks
-							final ChunkID prev = this.cs.hasChunk(nextChunkHash, chunkLength, chunksha);
-							if(prev != null) {
-								System.out.println("full chunk found");
-								this.instructChunkID(prev);
-							} else {
-								this.instructChunkID(this.cs.saveChunk(buff, chunkTail, chunkLength, chunksha, nextChunkHash));
-							}
-							//System.out.printf("Commit 0x%16x\n", nextChunkHash);
-							nextChunkHash = hash.digest();
-							chunkTail = hashTail;
-							chunkLength = 0;
-						}
-
-					} else {
-						hash.rollIn(buff[hashHead++]);
-						hashLength++;
-
-						if(hashHead == buff.length)
-							hashHead = 0;
-
-						if(hashLength == this.MAX_CHUNK_SIZE) {
-							nextChunkHash = hash.digest();
-						}
-					}
-
-					if(hashLength >= BackupCreator.MIN_CHUNK_SIZE) {
-						if(this.cs.hasChunk(hash.digest(), hashLength, null) != null) {
-
-							final byte[] sha = this.calcSha(buff, hashTail, hashLength);
-							final ChunkID curr = this.cs.hasChunk(hash.digest(), hashLength, sha);
-							if(curr != null) {
-								//System.out.println("Chunk found");
-								if(chunkTail != hashTail) {
-									//first push chunk part
-									final long partChunkHash = RollingHash.digest(buff, chunkTail, chunkLength);
-									final byte[] chunksha = this.calcSha(buff, hashTail, hashLength);
-									// nextChunkHash could only be used by full chunks
-									final ChunkID prev = this.cs.hasChunk(partChunkHash, chunkLength, chunksha);
-									if(prev != null) {
-										System.out.println("Partial chunk found");
-										this.instructChunkID(prev);
-									} else {
-										System.out.printf("Save partial chunk 0x%016x Length: %d%n", partChunkHash, chunkLength);
-										if(chunkLength < BackupCreator.MIN_CHUNK_SIZE) {
-											this.instructBytes(buff, chunkTail, chunkLength);
-										} else {
-											this.instructChunkID(this.cs.saveChunk(buff, chunkTail, chunkLength, chunksha, partChunkHash));
-										}
-									}
-									chunkLength = 0;
-								}
-								this.instructChunkID(curr);
-								hash = new RollingHash();
-								chunkTail = hashTail = hashHead;
-								hashLength = 0;
-
-							} else {
-								System.out.println("False positive");
-							}
-						}
+					if(hashLength >= this.MAX_CHUNK_SIZE) {
+						checkMatch();
 					}
 				}
 			}
@@ -174,6 +110,87 @@ public class BackupCreator implements Runnable {
 
 
 
+	}
+
+
+
+	private void advanceHash() {
+		if(hashLength == this.MAX_CHUNK_SIZE) {
+			hash.rotate(buff[hashHead++], buff[hashTail++]);
+			chunkLength++;
+
+			if(hashHead == buff.length)
+				hashHead = 0;
+			if(hashTail == buff.length)
+				hashTail = 0;
+
+			if(chunkLength == this.MAX_CHUNK_SIZE) {
+				// nextChunkHash could only be used by full chunks
+				saveChunk(nextChunkHash);
+
+				nextChunkHash = hash.digest();
+				chunkTail = hashTail;
+				chunkLength = 0;
+			}
+
+		} else {
+			hash.rollIn(buff[hashHead++]);
+			hashLength++;
+
+			if(hashHead == buff.length)
+				hashHead = 0;
+
+			if(hashLength == this.MAX_CHUNK_SIZE) {
+				nextChunkHash = hash.digest();
+			}
+		}
+	}
+
+
+
+	private void checkMatch() {
+		if(this.cs.hasChunk(hash.digest(), hashLength, null) != null) {
+
+			final byte[] sha = this.calcSha(buff, hashTail, hashLength);
+			final ChunkID curr = this.cs.hasChunk(hash.digest(), hashLength, sha);
+			if(curr != null) {
+				//System.out.println("Chunk found");
+				if(chunkTail != hashTail) {
+					//first push chunk part
+
+					// nextChunkHash could only be used by full chunks
+					final long partChunkHash = RollingHash.digest(buff, chunkTail, chunkLength);
+					saveChunk(partChunkHash);
+
+					chunkLength = 0;
+				}
+				this.instructChunkID(curr);
+				hash = new RollingHash();
+				chunkTail = hashTail = hashHead;
+				hashLength = 0;
+
+			} else {
+				System.out.println("False positive");
+			}
+		}
+	}
+
+
+
+	private void saveChunk(long hash) {
+		final byte[] chunksha = this.calcSha(buff, chunkTail, chunkLength);
+
+		final ChunkID prev = this.cs.hasChunk(hash, chunkLength, chunksha);
+		if(prev != null) {
+			System.out.println("chunk found");
+			this.instructChunkID(prev);
+		} else {
+			if(chunkLength < BackupCreator.MIN_CHUNK_SIZE) {
+				this.instructBytes(buff, chunkTail, chunkLength);
+			} else {
+				this.instructChunkID(this.cs.saveChunk(buff, chunkTail, chunkLength, chunksha, hash));
+			}
+		}
 	}
 
 	public ByteString getBackupInstructions() throws IOException {
