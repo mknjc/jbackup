@@ -88,7 +88,7 @@ public class ZbackupStore implements Store {
 		Files.createDirectories(store.resolve("index"));
 		final ChunkID[] loadedChunks;
 		try (Stream<Path> files = Files.list(store.resolve("index"))) {
-			loadedChunks = files.parallel()
+			loadedChunks = files
 					.flatMap(t -> ExceptionHelper.runtime(IndexFile::getChunksInIndex, t))
 					.toArray(i -> new ChunkID[i]);
 		}
