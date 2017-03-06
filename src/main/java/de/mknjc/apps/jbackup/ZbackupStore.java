@@ -93,7 +93,7 @@ public class ZbackupStore implements Store {
 					.toArray(i -> new ChunkID[i]);
 		}
 
-		indexCache = new IndexCache(loadedChunks);
+		indexCache = new StackedArrayIndexCache(loadedChunks);
 	}
 
 	@Override
