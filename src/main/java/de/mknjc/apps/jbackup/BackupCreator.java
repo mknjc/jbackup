@@ -76,7 +76,6 @@ public class BackupCreator implements Runnable {
 				this.inputLength += readed;
 
 				while(readed-- != 0) {
-
 					advanceHash();
 
 					if(hashLength >= this.MAX_CHUNK_SIZE) {

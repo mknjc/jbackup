@@ -216,9 +216,9 @@ public class ZbackupStore implements Store {
 
 	static String bundleString(final byte[] bundleID) {
 		return String.format("%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
-				bundleID[0], bundleID[1], bundleID[2], bundleID[3], bundleID[4], bundleID[5], bundleID[6], bundleID[7], bundleID[8], bundleID[9],
-				bundleID[10], bundleID[11], bundleID[12], bundleID[13], bundleID[14], bundleID[15], bundleID[16], bundleID[17], bundleID[18], bundleID[19],
-				bundleID[20], bundleID[21], bundleID[22], bundleID[23]
+				bundleID[0],  bundleID[1],  bundleID[2],  bundleID[3],  bundleID[4],  bundleID[5],  bundleID[6],  bundleID[7],
+				bundleID[8],  bundleID[9],  bundleID[10], bundleID[11], bundleID[12], bundleID[13], bundleID[14], bundleID[15],
+				bundleID[16], bundleID[17], bundleID[18], bundleID[19], bundleID[20], bundleID[21], bundleID[22], bundleID[23]
 				);
 	}
 
