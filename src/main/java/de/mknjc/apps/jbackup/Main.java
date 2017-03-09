@@ -65,6 +65,7 @@ public class Main {
 			final ZbackupStore store = new ZbackupStore(storePath, storeConfig, runtimeConfig);
 			final BackupCreator bc = new BackupCreator(System.in, store);
 			bc.run();
+			bc.printStats();
 
 			ByteString instructions = bc.getBackupInstructions();
 			int instructionLength = instructions.size();

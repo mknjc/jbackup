@@ -217,6 +217,10 @@ public class BackupCreator implements Runnable {
 		return ByteString.copyFrom(this.totalSHA.digest());
 	}
 
+	public void printStats() {
+		System.err.println("Found Chunks: " + foundChunks + " False Positives: " + falsePositives + " Short chunks: " + emittedShortChunks);
+	}
+
 	private void instructBytes(final byte[] chunk, final int offset, final int length) {
 		ByteString bs;
 		if(length > chunk.length - offset) {
