@@ -29,20 +29,20 @@ public class StackedArrayIndexCache implements IndexCache {
 	 * @see de.mknjc.apps.jbackup.IndexCache#hasChunk(long)
 	 */
 	@Override
-	public ChunkID hasChunk(long rollingHash) {
+	public boolean hasChunk(long rollingHash) {
 		final Object bucket = this.chunks[(int)rollingHash & mask];
 		if(bucket == null)
-			return null;
+			return false;
 		if(bucket instanceof ChunkID) {
 			ChunkID chunk = ((ChunkID)bucket);
-			return chunk.getRollingHash() == rollingHash ? chunk : null;
+			return chunk.getRollingHash() == rollingHash ? true : false;
 		}
 		for (final ChunkID c : ((ChunkID[])bucket)) {
 			if(c.getRollingHash() == rollingHash)
-				return c;
+				return true;
 		}
 
-		return null;
+		return false;
 	}
 	/* (non-Javadoc)
 	 * @see de.mknjc.apps.jbackup.IndexCache#hasChunkWithHash(long, long, long)

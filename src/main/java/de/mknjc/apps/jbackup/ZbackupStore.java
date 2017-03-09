@@ -145,14 +145,14 @@ public class ZbackupStore implements Store {
 
 
 	@Override
-	public ChunkID hasChunk(final long rollingHash, final int size, final byte[] shaHash) {
-		if(shaHash != null) {
-			long hash0 = ChunkID.makeLongFromArray(shaHash, 0);
-			long hash1 = ChunkID.makeLongFromArray(shaHash, 8);
-			return indexCache.hasChunkWithHash(rollingHash, hash0, hash1);
-		} else {
-			return indexCache.hasChunk(rollingHash);
-		}
+	public boolean hasChunk(final long rollingHash) {
+		return indexCache.hasChunk(rollingHash);
+	}
+	@Override
+	public ChunkID getChunk(final long rollingHash, final int size, final byte[] shaHash) {
+		long hash0 = ChunkID.makeLongFromArray(shaHash, 0);
+		long hash1 = ChunkID.makeLongFromArray(shaHash, 8);
+		return indexCache.hasChunkWithHash(rollingHash, hash0, hash1);
 
 	}
 

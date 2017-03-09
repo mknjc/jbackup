@@ -6,7 +6,8 @@ import java.util.concurrent.Future;
 import com.google.protobuf.ByteString;
 
 public interface Store {
-	public ChunkID hasChunk( long rollingHash, int size, byte[] chunkID);
+	public boolean hasChunk(long rollingHash);
+	public ChunkID getChunk(long rollingHash, int size, byte[] chunkID);
 
 	public ChunkID saveChunk(byte[] chunk, int offset, int length, byte[] chunkID, long rollingHash);
 

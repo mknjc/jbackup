@@ -32,16 +32,16 @@ public class LinearArrayIndexCache implements IndexCache {
 	 * @see de.mknjc.apps.jbackup.IndexCacheI#hasChunk(long)
 	 */
 	@Override
-	public ChunkID hasChunk(long rollingHash) {
+	public boolean hasChunk(long rollingHash) {
 		int idx = (int)rollingHash & mask;
 		ChunkID id;
 		while((id = chunks[idx]) != null) {
 			if(id.getRollingHash() == rollingHash)
-				return id;
+				return true;
 
 			idx = (idx + 1) & mask;
 		}
-		return null;
+		return false;
 	}
 	/* (non-Javadoc)
 	 * @see de.mknjc.apps.jbackup.IndexCacheI#hasChunkWithHash(long, long, long)

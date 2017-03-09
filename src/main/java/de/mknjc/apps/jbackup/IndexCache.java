@@ -2,7 +2,7 @@ package de.mknjc.apps.jbackup;
 
 public interface IndexCache {
 
-	ChunkID hasChunk(long rollingHash);
+	boolean hasChunk(long rollingHash);
 
 	ChunkID hasChunkWithHash(long rollingHash, long shaHash0, long shaHash1);
 

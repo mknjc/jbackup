@@ -148,10 +148,10 @@ public class BackupCreator implements Runnable {
 	}
 
 	private void checkMatch() {
-		if(this.cs.hasChunk(hash.digest(), hashLength, null) != null) {
+		if(this.cs.hasChunk(hash.digest())) {
 
 			final byte[] sha = this.calcSha(buff, hashTail, hashLength);
-			final ChunkID curr = this.cs.hasChunk(hash.digest(), hashLength, sha);
+			final ChunkID curr = this.cs.getChunk(hash.digest(), hashLength, sha);
 			if(curr != null) {
 				foundChunks++;
 				if(chunkTail != hashTail) {
@@ -185,7 +185,7 @@ public class BackupCreator implements Runnable {
 		} else {
 			final byte[] chunksha = this.calcSha(buff, chunkTail, chunkLength);
 
-			final ChunkID prev = this.cs.hasChunk(hash, chunkLength, chunksha);
+			final ChunkID prev = this.cs.getChunk(hash, chunkLength, chunksha);
 			if(prev != null) {
 				foundChunks++;
 				this.instructChunkID(prev);
