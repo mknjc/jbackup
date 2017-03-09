@@ -9,6 +9,7 @@ import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,14 +103,23 @@ public class ZbackupStore implements Store {
 		}
 
 		Files.createDirectories(store.resolve("index"));
+
+		long start = System.nanoTime();
+
+		//indexCache = new StackedArrayIndexCache(new ChunkID[0]);
 		final ChunkID[] loadedChunks;
 		try (Stream<Path> files = Files.list(store.resolve("index"))) {
-			loadedChunks = files
+			loadedChunks =
+					files
 					.flatMap(t -> ExceptionHelper.runtime(IndexFile::getChunksInIndex, t))
 					.toArray(i -> new ChunkID[i]);
+			//.forEach(indexCache::addChunk);
 		}
 
 		indexCache = new StackedArrayIndexCache(loadedChunks);
+		//indexCache = new ByteBufferIndexCache(loadedChunks);
+
+		System.err.println("Index with " + indexCache.count() + " chunkids loaded in " + Duration.ofNanos(System.nanoTime() - start));
 	}
 
 	@Override
