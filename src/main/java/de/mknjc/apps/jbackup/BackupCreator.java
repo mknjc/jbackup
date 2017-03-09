@@ -38,6 +38,12 @@ public class BackupCreator implements Runnable {
 	long nextChunkHash = 0;
 
 
+	// stats
+	int falsePositives;
+	int foundChunks;
+	int emittedShortChunks;
+
+
 	public BackupCreator(final InputStream input, final Store cs) {
 		this.in = input;
 		this.cs = cs;
@@ -76,7 +82,11 @@ public class BackupCreator implements Runnable {
 				this.inputLength += readed;
 
 				while(readed-- != 0) {
-					advanceHash();
+					if(hashLength == this.MAX_CHUNK_SIZE) {
+						advanceHash();
+					} else {
+						readInHash();
+					}
 
 					if(hashLength >= this.MAX_CHUNK_SIZE) {
 						checkMatch();
@@ -111,41 +121,36 @@ public class BackupCreator implements Runnable {
 
 	}
 
-
-
 	private void advanceHash() {
-		if(hashLength == this.MAX_CHUNK_SIZE) {
-			hash.rotate(buff[hashHead++], buff[hashTail++]);
-			chunkLength++;
+		hash.rotate(buff[hashHead++], buff[hashTail++]);
+		chunkLength++;
 
-			if(hashHead == buff.length)
-				hashHead = 0;
-			if(hashTail == buff.length)
-				hashTail = 0;
+		if(hashHead == buff.length)
+			hashHead = 0;
+		if(hashTail == buff.length)
+			hashTail = 0;
 
-			if(chunkLength == this.MAX_CHUNK_SIZE) {
-				// nextChunkHash could only be used by full chunks
-				saveChunk(nextChunkHash);
+		if(chunkLength == this.MAX_CHUNK_SIZE) {
+			// nextChunkHash could only be used by full chunks
+			saveChunk(nextChunkHash);
 
-				nextChunkHash = hash.digest();
-				chunkTail = hashTail;
-				chunkLength = 0;
-			}
-
-		} else {
-			hash.rollIn(buff[hashHead++]);
-			hashLength++;
-
-			if(hashHead == buff.length)
-				hashHead = 0;
-
-			if(hashLength == this.MAX_CHUNK_SIZE) {
-				nextChunkHash = hash.digest();
-			}
+			nextChunkHash = hash.digest();
+			chunkTail = hashTail;
+			chunkLength = 0;
 		}
 	}
 
+	private void readInHash() {
+		hash.rollIn(buff[hashHead++]);
+		hashLength++;
 
+		if(hashHead == buff.length)
+			hashHead = 0;
+
+		if(hashLength == this.MAX_CHUNK_SIZE) {
+			nextChunkHash = hash.digest();
+		}
+	}
 
 	private void checkMatch() {
 		if(this.cs.hasChunk(hash.digest(), hashLength, null) != null) {
@@ -153,7 +158,7 @@ public class BackupCreator implements Runnable {
 			final byte[] sha = this.calcSha(buff, hashTail, hashLength);
 			final ChunkID curr = this.cs.hasChunk(hash.digest(), hashLength, sha);
 			if(curr != null) {
-				//System.out.println("Chunk found");
+				foundChunks++;
 				if(chunkTail != hashTail) {
 					//first push chunk part
 
@@ -169,6 +174,7 @@ public class BackupCreator implements Runnable {
 				hashLength = 0;
 
 			} else {
+				falsePositives++;
 				System.out.println("False positive");
 			}
 		}
@@ -177,15 +183,17 @@ public class BackupCreator implements Runnable {
 
 
 	private void saveChunk(long hash) {
-		final byte[] chunksha = this.calcSha(buff, chunkTail, chunkLength);
+		if(chunkLength < BackupCreator.MIN_CHUNK_SIZE) {
+			emittedShortChunks++;
+			this.instructBytes(buff, chunkTail, chunkLength);
 
-		final ChunkID prev = this.cs.hasChunk(hash, chunkLength, chunksha);
-		if(prev != null) {
-			System.out.println("chunk found");
-			this.instructChunkID(prev);
 		} else {
-			if(chunkLength < BackupCreator.MIN_CHUNK_SIZE) {
-				this.instructBytes(buff, chunkTail, chunkLength);
+			final byte[] chunksha = this.calcSha(buff, chunkTail, chunkLength);
+
+			final ChunkID prev = this.cs.hasChunk(hash, chunkLength, chunksha);
+			if(prev != null) {
+				foundChunks++;
+				this.instructChunkID(prev);
 			} else {
 				this.instructChunkID(this.cs.saveChunk(buff, chunkTail, chunkLength, chunksha, hash));
 			}
