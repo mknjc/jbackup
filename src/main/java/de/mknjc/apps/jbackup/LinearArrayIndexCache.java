@@ -89,5 +89,10 @@ public class LinearArrayIndexCache implements IndexCache {
 			this.mask = newMask;
 		}
 	}
+
+	@Override
+	public long count() {
+		return chunkCount;
+	}
 }
 

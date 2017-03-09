@@ -8,4 +8,6 @@ public interface IndexCache {
 
 	void addChunk(ChunkID id);
 
+	long count();
+
 }

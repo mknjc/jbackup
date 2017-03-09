@@ -109,6 +109,10 @@ public class StackedArrayIndexCache implements IndexCache {
 			this.mask = newMask;
 		}
 	}
+	@Override
+	public long count() {
+		return chunkCount;
+	}
 
 	private void printHistogram() {
 		HashMap<Integer, Long> histogram = new HashMap<>();
