@@ -95,14 +95,9 @@ public class BackupCreator implements Runnable {
 			}
 			System.out.println("Hashhead: " + hashHead + " HashTail: " + hashTail + " ChunkTail: " + chunkTail + " ChunkLength: " + chunkLength);
 
-			if(chunkLength >= BackupCreator.MIN_CHUNK_SIZE) {
-				final long partChunkHash = RollingHash.digest(buff, chunkTail, chunkLength);
-				final byte[] chunksha = this.calcSha(buff, chunkTail, chunkLength);
-				this.instructChunkID(this.cs.saveChunk(buff, chunkTail, chunkLength, chunksha, partChunkHash));
+			if(chunkLength > 0)
+				saveChunk(RollingHash.digest(buff, chunkTail, chunkLength));
 
-			} else if(chunkLength > 0) {
-				this.instructBytes(buff, chunkTail, chunkLength);
-			}
 			if(hashHead != hashTail) {
 				if(hashLength >= BackupCreator.MIN_CHUNK_SIZE) {
 					final long partChunkHash = RollingHash.digest(buff, hashTail, hashLength);
