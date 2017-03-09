@@ -19,6 +19,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import com.google.protobuf.ByteString;
 import de.mknjc.apps.zbackup.proto.Zbackup.BackupInfo;
@@ -63,10 +65,10 @@ public class ZbackupStore implements Store {
 
 			switch (key) {
 			case "chunk.max_size":
-				this.config.chunkMaxSize = Integer.parseInt(val);
+				this.config.chunkMaxSize = parseSize(val);
 				break;
 			case "bundle.max_payload_size":
-				this.config.chunkMaxSize = Integer.parseInt(val);
+				this.config.bundleMaxPayload = parseSize(val);
 				break;
 			case "compression":
 			case "bundle.compression_method":
@@ -81,6 +83,20 @@ public class ZbackupStore implements Store {
 
 			default:
 				System.err.println("Unknown config " + option);
+				break;
+			}
+		}
+		for (String option : runtimeOptions) {
+			final int eq = option.indexOf('=');
+			final String key = eq > 0 ? option.substring(0, eq) : option;
+			final String val = eq > 0 && eq < option.length() - 1 ? option.substring(eq + 1, option.length()) : null;
+
+			switch (key) {
+			case "cache-size":
+				this.config.chunksInCache = Integer.parseInt(val);
+				break;
+
+			default:
 				break;
 			}
 		}
@@ -273,6 +289,33 @@ public class ZbackupStore implements Store {
 		return bundleID;
 	}
 
+	private int parseSize(String value) {
+		Matcher m = Pattern.compile("([0-9]+)([kKmMgG]?)[bB]?").matcher(value);
+
+		if(!m.matches())
+			throw new IllegalArgumentException(value + " is a invalid size string");
+
+		int size = Integer.parseInt(m.group(1));
+
+		String mod = m.group(2);
+		if(mod == null || mod.length() == 0)
+			return size;
+
+		switch(mod.charAt(0)) {
+		case 'k':
+		case 'K':
+			return size * 1024;
+		case 'm':
+		case 'M':
+			return size * 1024 * 1024;
+		case 'g':
+		case 'G':
+			return size * 1024 * 1024 * 1024;
+		default:
+			throw new IllegalArgumentException("");
+		}
+	}
+
 	private String generateRandomName() {
 		final int[] chars = this.rand.ints(0x41, 0x7b).filter(i -> (i < 0x5b) || (i > 0x60)).limit(8).toArray();
 		return new String(chars, 0, 8);
@@ -284,6 +327,7 @@ public class ZbackupStore implements Store {
 		String bundleCompressionMethod = "lzma";
 		int compressionLevel = 6;
 		int erasureLevel = 0;
+		int chunksInCache = 16;
 	}
 
 	@Override
@@ -291,4 +335,8 @@ public class ZbackupStore implements Store {
 		return this.config.chunkMaxSize;
 	}
 
+	@Override
+	public int getMaxChunksInCache() {
+		return this.config.chunksInCache;
+	}
 }

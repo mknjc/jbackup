@@ -102,7 +102,7 @@ public class Main {
 				}
 
 				final ByteArrayOutputStream os = new ByteArrayOutputStream();
-				BackupRestorer.restore(instructions, store, os, 16);
+				BackupRestorer.restore(instructions, store, os);
 				instStream = new ByteArrayInputStream(os.toByteArray());
 				iterations--;
 			}
@@ -114,7 +114,7 @@ public class Main {
 
 			final SHA256OutputStream checkedOs = new SHA256OutputStream(System.out);
 
-			BackupRestorer.restore(instructions, store, checkedOs, 16);
+			BackupRestorer.restore(instructions, store, checkedOs);
 
 			store.finish();
 

@@ -14,6 +14,7 @@ public interface Store {
 
 
 	public int getMaxChunkSize();
+	public int getMaxChunksInCache();
 
 	Future<Bundle> loadBundle(byte[] id);
 

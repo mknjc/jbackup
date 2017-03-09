@@ -15,7 +15,7 @@ import com.google.protobuf.ByteString;
 import de.mknjc.apps.zbackup.proto.Zbackup.BackupInstruction;
 
 public class BackupRestorer {
-	public static void restore(final List<BackupInstruction> instructions, final Store store, final OutputStream os, final int maxCachedBundles) throws IOException {
+	public static void restore(final List<BackupInstruction> instructions, final Store store, final OutputStream os) throws IOException {
 		final List<Action> backupActions = new ArrayList<>();
 
 		for (final BackupInstruction instruction : instructions) {
@@ -40,7 +40,7 @@ public class BackupRestorer {
 				continue;
 
 
-			if(bundlesInCache.size() >= maxCachedBundles) {
+			if(bundlesInCache.size() >= store.getMaxChunksInCache()) {
 				// check for each bundle the nex used time
 				final int[] nextUsed = new int[bundlesInCache.size()];
 				Arrays.fill(nextUsed, Integer.MAX_VALUE);
